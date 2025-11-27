@@ -92,6 +92,11 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
     }
     
+    public UserResponse getUserResponseByUsername(String username) {
+        User user = getUserByUsername(username);
+        return mapToUserResponse(user);
+    }
+    
     public String getCurrentUsername() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (principal instanceof UserDetails) {

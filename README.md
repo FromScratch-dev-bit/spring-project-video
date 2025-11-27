@@ -1,21 +1,22 @@
-# RentVideo - Video Rental System
+# RentVideo - Video Rental System (Advanced)
 
-A RESTful API service built with Spring Boot for managing an online video rental system with Basic Authentication and role-based authorization.
+A RESTful API service built with Spring Boot for managing an online video rental system with JWT-based stateless authentication and role-based authorization.
 
 ## Features
 
 - **Video Management**: CRUD operations for video catalog
 - **User Management**: User registration and profile management
 - **Rental Management**: Rent, return, and track video rentals
-- **Security**: Basic Authentication with role-based access control (ADMIN, USER)
-- **Authorization**: Fine-grained permissions based on user roles
+- **Security**: JWT (JSON Web Token) based stateless authentication
+- **Authorization**: Role-based access control (ADMIN, USER) with fine-grained permissions
 
 ## Technology Stack
 
 - **Java 17**
 - **Spring Boot 3.2.0**
-- **Spring Security** (Basic Authentication)
+- **Spring Security** (JWT Authentication)
 - **Spring Data JPA**
+- **JJWT 0.12.3** (JWT implementation)
 - **H2 Database** (Development)
 - **MySQL** (Production-ready)
 - **Maven**
@@ -27,7 +28,12 @@ A RESTful API service built with Spring Boot for managing an online video rental
 src/main/java/com/rentvideo/
 ├── VideoRentalApplication.java
 ├── config/
-│   └── SecurityConfig.java
+│   ├── SecurityConfig.java
+│   └── DataInitializer.java
+├── security/
+│   ├── JwtUtil.java
+│   ├── JwtAuthenticationFilter.java
+│   └── JwtAuthenticationEntryPoint.java
 ├── model/
 │   ├── User.java
 │   ├── Video.java
@@ -131,16 +137,52 @@ The application creates default users on startup:
 
 ## Authentication
 
-This API uses **Basic Authentication**. Include credentials in the Authorization header:
+This API uses **JWT (JSON Web Token)** for stateless authentication. 
 
-```
-Authorization: Basic base64(username:password)
-```
+### Getting a Token
 
-Example using curl:
+1. Login with valid credentials:
 ```bash
-curl -u admin:admin123 http://localhost:8080/api/videos
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}'
 ```
+
+2. You'll receive a response with an access token:
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "tokenType": "Bearer",
+  "user": {...},
+  "message": "Login successful"
+}
+```
+
+3. Use the token in subsequent requests:
+```
+Authorization: Bearer <your-jwt-token>
+```
+
+Example:
+```bash
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  http://localhost:8080/api/videos
+```
+
+**Token Expiration**: Tokens are valid for 24 hours (86400000 ms)
+
+## 📖 Documentation
+
+- **[API_DOCUMENTATION.md](API_DOCUMENTATION.md)** - Complete API reference with all endpoints
+- **[JWT_AUTHENTICATION_GUIDE.md](JWT_AUTHENTICATION_GUIDE.md)** - Comprehensive JWT authentication guide with frontend examples
+- **[RentVideo_API_Postman_Collection.json](RentVideo_API_Postman_Collection.json)** - Ready-to-use Postman collection
+
+## 🧪 Testing with Postman
+
+1. Import `RentVideo_API_Postman_Collection.json` into Postman
+2. Run "Login (Admin)" or "Login (User)" request
+3. The JWT token will be automatically saved to environment variable `jwt_token`
+4. All other requests will use this token automatically
 
 ## Database
 

@@ -1,4 +1,4 @@
-# RentVideo API Documentation
+# RentVideo API Documentation (Advanced - JWT)
 
 ## Base URL
 ```
@@ -6,16 +6,23 @@ http://localhost:8080/api
 ```
 
 ## Authentication
-All endpoints (except registration) require Basic Authentication.
+This API uses **JWT (JSON Web Token)** based stateless authentication.
+
+### How to Authenticate
+
+1. **Register** (if you don't have an account) or **Login** to get a JWT token
+2. Include the token in the `Authorization` header for all protected endpoints
 
 **Header Format:**
 ```
-Authorization: Basic base64(username:password)
+Authorization: Bearer <your-jwt-token>
 ```
 
 **Default Credentials:**
 - Admin: `admin` / `admin123`
 - User: `user` / `user123`
+
+**Token Expiration:** 24 hours (86400000 ms)
 
 ---
 
@@ -42,7 +49,7 @@ Authorization: Basic base64(username:password)
 **Response (201):**
 ```json
 {
-  "message": "User registered successfully",
+  "message": "User registered successfully. Please login to get your access token.",
   "user": {
     "id": 1,
     "username": "johndoe",
@@ -56,10 +63,12 @@ Authorization: Basic base64(username:password)
 }
 ```
 
+**Note:** After registration, you need to login to get your JWT access token.
+
 #### 2. Login
 **POST** `/auth/login`
 
-**Access:** Public (but requires credentials)
+**Access:** Public
 
 **Request Body:**
 ```json
@@ -72,17 +81,23 @@ Authorization: Basic base64(username:password)
 **Response (200):**
 ```json
 {
-  "message": "Login successful",
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyIiwiaWF0IjoxNzAwMDAwMDAwLCJleHAiOjE3MDAwODY0MDB9.signature",
+  "tokenType": "Bearer",
   "user": {
     "id": 2,
     "username": "user",
     "fullName": "John Doe",
     "email": "user@rentvideo.com",
+    "phoneNumber": "+0987654321",
     "role": "USER",
-    "active": true
-  }
+    "active": true,
+    "createdAt": "2024-01-15T10:00:00"
+  },
+  "message": "Login successful"
 }
 ```
+
+**Note:** Save the `accessToken` and use it in the `Authorization` header as `Bearer <accessToken>` for subsequent requests.
 
 ---
 
@@ -340,7 +355,7 @@ GET /videos?title=dark
 
 ## Testing with cURL
 
-### Register a new user
+### 1. Register a new user
 ```bash
 curl -X POST http://localhost:8080/api/auth/register \
   -H "Content-Type: application/json" \
@@ -352,14 +367,29 @@ curl -X POST http://localhost:8080/api/auth/register \
   }'
 ```
 
-### Get all videos (authenticated)
+### 2. Login to get JWT token
 ```bash
-curl -u user:user123 http://localhost:8080/api/videos
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "user",
+    "password": "user123"
+  }'
 ```
 
-### Rent a video
+**Save the `accessToken` from the response!**
+
+### 3. Get all videos (authenticated with JWT)
 ```bash
-curl -u user:user123 -X POST http://localhost:8080/api/rentals \
+# Replace YOUR_JWT_TOKEN with the actual token from login response
+curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  http://localhost:8080/api/videos
+```
+
+### 4. Rent a video
+```bash
+curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -X POST http://localhost:8080/api/rentals \
   -H "Content-Type: application/json" \
   -d '{
     "videoId": 1,
@@ -367,9 +397,19 @@ curl -u user:user123 -X POST http://localhost:8080/api/rentals \
   }'
 ```
 
-### Create a video (admin only)
+### 5. Create a video (admin only)
 ```bash
-curl -u admin:admin123 -X POST http://localhost:8080/api/videos \
+# First login as admin to get admin token
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "admin",
+    "password": "admin123"
+  }'
+
+# Then use the admin token
+curl -H "Authorization: Bearer ADMIN_JWT_TOKEN" \
+  -X POST http://localhost:8080/api/videos \
   -H "Content-Type: application/json" \
   -d '{
     "title": "New Movie",
